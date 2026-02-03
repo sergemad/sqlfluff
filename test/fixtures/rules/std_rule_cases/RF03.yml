@@ -160,7 +160,6 @@ test_tsql_pivot_are_excluded:
     core:
       dialect: tsql
 
-
 test_date_functions_are_excluded:
   # This should pass as date keywords columns do not need to be
   # qualified
@@ -538,3 +537,28 @@ test_pass_tsql_collate_clause:
   configs:
     core:
       dialect: tsql
+
+test_pass_databricks_lambda_expression:
+  pass_str: |
+    SELECT
+      id,
+      transform(
+        from_json(json_array, 'array<struct<taskId:struct<`$oid`:string>>>'),
+        item -> struct(item.`taskId`.`$oid` AS task_id)
+      ) AS transformed
+    FROM source_data
+  configs:
+    core:
+      dialect: databricks
+
+test_pass_databricks_lambdas:
+  pass_str: |
+    select
+        i.*,
+        aggregate(i.some_column, 0, (acc, x) -> acc + x) as y
+    from some_table as o
+    inner join some_other_table as i
+        on o.id = i.id;
+  configs:
+    core:
+      dialect: databricks

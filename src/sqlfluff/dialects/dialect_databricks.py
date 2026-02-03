@@ -60,6 +60,7 @@ databricks_dialect.insert_lexer_matchers(
     # https://docs.databricks.com/en/sql/language-manual/sql-ref-function-invocation.html#named-parameter-invocation
     [
         StringLexer("right_arrow", "=>", CodeSegment),
+        StringLexer("function_assigner", "->", CodeSegment),
     ],
     before="equals",
 )
@@ -136,6 +137,7 @@ databricks_dialect.add(
         type="pipeline_parameter",
     ),
     RightArrowSegment=StringParser("=>", SymbolSegment, type="right_arrow"),
+    LambdaArrowSegment=StringParser("->", SymbolSegment, type="lambda_arrow"),
     # https://docs.databricks.com/en/sql/language-manual/sql-ref-principal.html
     PrincipalIdentifierSegment=OneOf(
         Ref("NakedIdentifierSegment"),
@@ -2121,4 +2123,32 @@ class CreateFlowStatementSegment(BaseSegment):
         Ref("TableReferenceSegment"),
         Dedent,
         Ref("CDCSpecificationSegment"),
+    )
+
+
+class LambdaExpressionSegment(BaseSegment):
+    """A lambda expression used in transform function.
+
+    https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-lambda-functions
+    https://docs.databricks.com/aws/en/sql/language-manual/functions/transform
+    """
+
+    type = "lambda_function"
+    match_grammar = Sequence(
+        OneOf(
+            Sequence(
+                Ref("ParameterNameSegment"),
+                Ref("DatatypeSegment", optional=True),
+            ),
+            Bracketed(
+                Delimited(
+                    Sequence(
+                        Ref("ParameterNameSegment"),
+                        Ref("DatatypeSegment", optional=True),
+                    )
+                )
+            ),
+        ),
+        Ref("LambdaArrowSegment"),
+        Ref("ExpressionSegment"),
     )
